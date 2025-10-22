@@ -4,6 +4,16 @@ import { PinoLogger } from 'nestjs-pino';
 import { BaseRepository } from './base.repository';
 import { PrismaService } from './prisma.service';
 
+export type RenewableSubscriptionPayload = Prisma.subscriptionsGetPayload<{
+  include: {
+    payment_channels: true;
+    charging_configurations: true;
+    product_plans: true;
+    plan_pricing: true;
+    products: true;
+  };
+}>;
+
 @Injectable()
 export class SubscriptionRepository extends BaseRepository<
   subscriptions,
@@ -32,11 +42,45 @@ export class SubscriptionRepository extends BaseRepository<
     return prismaClient.subscriptions;
   }
 
-  async findByMsisdn(msisdn: string, paymentChannelId: number, planId: number) {
-    return this.findFirst({
-      msisdn: msisdn,
-      payment_channel_id: paymentChannelId,
-      plan_id: planId,
+  async findRenewableSubscriptions(
+    take: number = 10000,
+    cursor?: bigint,
+  ): Promise<RenewableSubscriptionPayload[]> {
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setUTCHours(23, 59, 59, 999);
+
+    const whereClause: Prisma.subscriptionsWhereInput = {
+      auto_renew: true,
+      status: {
+        in: ['ACTIVE', 'SUSPENDED_PAYMENT_FAILED'],
+      },
+      next_billing_at: {
+        gte: todayStart,
+        lte: todayEnd,
+      },
+      ...(cursor && {
+        id: {
+          gt: cursor,
+        },
+      }),
+    };
+
+    return this.getDelegate(this.prisma).findMany({
+      where: whereClause,
+      orderBy: {
+        id: 'asc',
+      },
+      take,
+      include: {
+        payment_channels: true,
+        charging_configurations: true,
+        product_plans: true,
+        plan_pricing: true,
+        products: true,
+      },
     });
   }
 }

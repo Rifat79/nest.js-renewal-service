@@ -238,4 +238,25 @@ export class RedisService implements OnModuleDestroy {
   async getOperationResult<T>(idempotencyKey: string): Promise<T | null> {
     return this.get<T>(`idempotency:${idempotencyKey}`);
   }
+
+  /**
+   * Appends one or more values to the end of a Redis list.
+   * Useful for task queues, logs, etc.
+   */
+  async rpush(key: string, ...values: string[]): Promise<number | null> {
+    try {
+      const result = await this.redis.rpush(key, ...values);
+      this.logger.debug(
+        { key, values, result },
+        'Values pushed to Redis list.',
+      );
+      return result; // Returns new length of the list
+    } catch (error) {
+      this.logger.error(
+        { error, key, values },
+        'Failed to push values to Redis list.',
+      );
+      return null;
+    }
+  }
 }
