@@ -1,7 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { RenewalProcessor } from './renewal.processor';
-import { RenewalScheduler } from './renewal.scheduler';
+import { RenewalGpProcessor } from './renewal-gp.processor';
+import { RenewalScheduler } from './renewal.schedular';
 import { RenewalService } from './renewal.service';
 
 export const RENEWAL_QUEUES = {
@@ -18,7 +18,7 @@ export const RENEWAL_QUEUES = {
       { name: RENEWAL_QUEUES.ROBI_MIFE },
     ),
   ],
-  providers: [RenewalService, RenewalProcessor, RenewalScheduler],
+  providers: [RenewalService, RenewalGpProcessor, RenewalScheduler],
   exports: [RenewalService],
 })
 export class RenewalModule {}
