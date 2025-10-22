@@ -1,0 +1,352 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model billing_events {
+  id                   BigInt           @id(map: "subscription_billing_histories_pkey") @default(autoincrement())
+  merchant_id          Int
+  product_id           Int
+  plan_id              Int
+  subscription_id      String           @db.VarChar(100)
+  payment_channel_id   Int
+  msisdn               String           @db.VarChar(20)
+  payment_reference_id String?          @db.VarChar(100)
+  event_type           String           @db.VarChar(30)
+  status               String           @default("INITIATED") @db.VarChar(30)
+  amount               Decimal          @db.Decimal(10, 2)
+  currency             String           @db.Char(3)
+  request_payload      Json?
+  response_code        String?          @db.VarChar(20)
+  response_message     String?
+  response_payload     Json?
+  created_at           DateTime         @default(now()) @db.Timestamptz(6)
+  amount_with_vat      Decimal?         @db.Decimal(10, 2)
+  duration             Int?
+  plan_pricing_id      Int?
+  payment_channels     payment_channels @relation(fields: [payment_channel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_carrier")
+  merchants            merchants        @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_merchant")
+  product_plans        product_plans    @relation(fields: [plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plan")
+  products             products         @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product")
+  subscriptions        subscriptions    @relation(fields: [subscription_id], references: [subscription_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_subscription")
+
+  @@index([payment_channel_id, created_at], map: "idx_carrier_date")
+  @@index([status, created_at], map: "idx_status_date")
+  @@index([subscription_id], map: "idx_subscription_id")
+  @@index([event_type], map: "idx_transaction_type")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model blacklist {
+  id         BigInt    @id(map: "blacklists_pkey") @default(autoincrement())
+  list_type  String
+  value      String    @db.VarChar(255)
+  reason     String?   @db.VarChar(500)
+  added_by   String?   @db.VarChar(100)
+  expires_at DateTime? @db.Timestamp(6)
+  is_active  Boolean?  @default(true)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model charging_configurations {
+  id                 Int              @id @default(autoincrement())
+  payment_channel_id Int
+  product_id         Int
+  plan_id            Int?
+  config             Json
+  created_at         DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at         DateTime?        @default(now()) @db.Timestamp(6)
+  payment_channels   payment_channels @relation(fields: [payment_channel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "charging_configurations_carrier_id_fkey")
+  product_plans      product_plans?   @relation(fields: [plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  products           products         @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([payment_channel_id, product_id, plan_id], map: "charging_configurations_carrier_id_product_id_plan_id_key")
+}
+
+model countries {
+  id               Int                @id @default(autoincrement())
+  iso_code         String             @unique @db.Char(2)
+  iso3_code        String             @unique @db.Char(3)
+  name             String             @db.VarChar(100)
+  currency_code    String             @db.Char(3)
+  timezone         String?            @db.VarChar(50)
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  payment_channels payment_channels[]
+}
+
+model merchant_notifications {
+  id                   BigInt    @id @default(autoincrement())
+  merchant_id          Int
+  product_id           Int
+  webhook_url          String
+  event_type           String    @db.VarChar(50)
+  http_method          String    @default("POST") @db.VarChar(10)
+  headers              Json
+  payload              Json
+  signature            String?
+  related_order_id     String?   @db.VarChar(100)
+  sent_at              DateTime? @db.Timestamptz(6)
+  response_status_code Int?
+  response_body        String?
+  response_time_ms     Int?
+  delivery_status      String?   @default("pending") @db.VarChar(30)
+  retry_count          Int?      @default(0)
+  next_retry_at        DateTime? @db.Timestamptz(6)
+  max_retries          Int?      @default(5)
+  failed_at            DateTime? @db.Timestamptz(6)
+  error_message        String?
+  created_at           DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime? @default(now()) @db.Timestamptz(6)
+  merchants            merchants @relation(fields: [merchant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_mn_merchant")
+  products             products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_mn_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model merchants {
+  id                      Int                      @id @default(autoincrement())
+  merchant_code           String                   @unique @db.VarChar(50)
+  company_name            String                   @db.VarChar(200)
+  legal_name              String?                  @db.VarChar(200)
+  business_type           String                   @db.VarChar(20)
+  website                 String?                  @db.VarChar(255)
+  primary_contact_email   String                   @db.VarChar(100)
+  primary_contact_phone   String?                  @db.VarChar(20)
+  billing_contact_email   String?                  @db.VarChar(100)
+  technical_contact_email String?                  @db.VarChar(100)
+  status                  String?                  @default("PENDING") @db.VarChar(20)
+  suspension_reason       String?                  @db.VarChar(500)
+  onboarding_completed_at DateTime?                @db.Timestamptz(6)
+  contract_signed_at      DateTime?                @db.Timestamptz(6)
+  contract_expires_at     DateTime?                @db.Timestamptz(6)
+  created_at              DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?                @default(now()) @db.Timestamptz(6)
+  billing_events          billing_events[]
+  merchant_notifications  merchant_notifications[]
+  products                products[]
+  subscriptions           subscriptions[]
+}
+
+model payment_channel_webhooks {
+  id                      BigInt         @id @default(autoincrement())
+  payment_channel         String         @db.VarChar(20)
+  event_type              String         @db.VarChar(50)
+  http_method             String         @default("POST") @db.VarChar(10)
+  headers                 Json
+  payload                 Json
+  ip_address              String?        @db.Inet
+  received_at             DateTime?      @default(now()) @db.Timestamptz(6)
+  processed_at            DateTime?      @db.Timestamptz(6)
+  processing_status       String?        @default("PENDING") @db.VarChar(20)
+  error_message           String?
+  related_subscription_id String?        @db.VarChar(100)
+  created_at              DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?      @default(now()) @db.Timestamptz(6)
+  subscriptions           subscriptions? @relation(fields: [related_subscription_id], references: [subscription_id], onUpdate: NoAction, map: "fk_payment_channel_webhooks_subscription_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payment_channels {
+  id                      Int                       @id(map: "carriers_pkey") @default(autoincrement())
+  code                    String                    @unique(map: "carriers_code_key") @db.VarChar(20)
+  name                    String                    @db.VarChar(100)
+  country_id              Int
+  supports_subscription   Boolean?                  @default(true)
+  supports_refunds        Boolean?                  @default(true)
+  max_transaction_amount  Decimal?                  @db.Decimal(10, 2)
+  min_transaction_amount  Decimal?                  @default(0.50) @db.Decimal(10, 2)
+  is_active               Boolean?                  @default(true)
+  created_at              DateTime?                 @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?                 @default(now()) @db.Timestamptz(6)
+  type                    String                    @default("OPERATOR") @db.VarChar(20)
+  billing_events          billing_events[]
+  charging_configurations charging_configurations[]
+  countries               countries                 @relation(fields: [country_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "carriers_country_id_fkey")
+  plan_pricing            plan_pricing[]
+  subscriptions           subscriptions[]
+}
+
+model plan_pricing {
+  id                   Int               @id @default(autoincrement())
+  plan_id              Int
+  payment_channel_id   Int?
+  base_amount          Decimal           @db.Decimal(10, 2)
+  vat_percentage       Decimal?          @default(0) @db.Decimal(5, 2)
+  currency             String            @db.Char(3)
+  effective_from       DateTime          @db.Date
+  effective_to         DateTime?         @db.Date
+  is_active            Boolean?          @default(true)
+  promotional_price    Decimal?          @db.Decimal(10, 2)
+  promotion_start_date DateTime?         @db.Date
+  promotion_end_date   DateTime?         @db.Date
+  created_at           DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?         @default(now()) @db.Timestamptz(6)
+  payment_channels     payment_channels? @relation(fields: [payment_channel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "plan_pricing_carrier_id_fkey")
+  product_plans        product_plans     @relation(fields: [plan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([payment_channel_id, is_active], map: "idx_carrier_pricing")
+  @@index([effective_from, effective_to], map: "idx_effective_dates")
+  @@index([plan_id, payment_channel_id, is_active], map: "idx_plan_carrier_active")
+}
+
+model product_categories {
+  id                       Int                  @id @default(autoincrement())
+  name                     String               @db.VarChar(100)
+  parent_id                Int?
+  description              String?
+  is_active                Boolean?             @default(true)
+  created_at               DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at               DateTime?            @default(now()) @db.Timestamp(6)
+  product_categories       product_categories?  @relation("product_categoriesToproduct_categories", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_parent")
+  other_product_categories product_categories[] @relation("product_categoriesToproduct_categories")
+  products                 products[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product_plans {
+  id                      Int                       @id @default(autoincrement())
+  product_id              Int
+  billing_frequency       String                    @db.VarChar(50)
+  plan_name               String                    @db.VarChar(100)
+  plan_description        String?
+  billing_model           String                    @db.VarChar(20)
+  billing_cycle_days      Int
+  trial_period_days       Int?                      @default(0)
+  is_active               Boolean?                  @default(true)
+  created_at              DateTime?                 @default(now()) @db.Timestamp(6)
+  updated_at              DateTime?                 @default(now()) @db.Timestamp(6)
+  plan_code               String                    @unique @db.VarChar(8)
+  billing_events          billing_events[]
+  charging_configurations charging_configurations[]
+  plan_pricing            plan_pricing[]
+  products                products                  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_product")
+  subscriptions           subscriptions[]
+
+  @@unique([product_id, billing_frequency, billing_model, trial_period_days], map: "unique_product_plan_code")
+  @@index([billing_cycle_days], map: "idx_billing_cycle")
+  @@index([product_id, is_active], map: "idx_product_active")
+}
+
+model products {
+  id                      Int                       @id @default(autoincrement())
+  merchant_id             Int
+  category_id             Int?
+  name                    String                    @db.VarChar(200)
+  description             String?
+  subscription_url        String                    @db.VarChar(500)
+  unsubscription_url      String                    @db.VarChar(500)
+  is_active               Boolean?                  @default(true)
+  created_at              DateTime?                 @default(now()) @db.Timestamp(6)
+  updated_at              DateTime?                 @default(now()) @db.Timestamp(6)
+  notification_config     Json?
+  billing_events          billing_events[]
+  charging_configurations charging_configurations[]
+  merchant_notifications  merchant_notifications[]
+  product_plans           product_plans[]
+  product_categories      product_categories?       @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  merchants               merchants                 @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subscriptions           subscriptions[]
+}
+
+model sms_logs {
+  id                      BigInt    @id @default(autoincrement())
+  msisdn                  String    @db.VarChar(16)
+  sender_id               String?   @db.VarChar(50)
+  message                 String
+  message_type            String?   @db.VarChar(20)
+  related_subscription_id String?   @db.VarChar(100)
+  http_method             String?   @default("POST") @db.VarChar(10)
+  request_url             String
+  request_payload         Json
+  request_headers         Json?
+  status                  String?   @db.VarChar(30)
+  error_code              String?   @db.VarChar(20)
+  error_message           String?
+  provider                String?   @db.VarChar(50)
+  provider_message_id     String?   @db.VarChar(100)
+  provider_response       Json?
+  retry_count             Int?      @default(0)
+  max_retries             Int?      @default(3)
+  next_retry_at           DateTime? @db.Timestamptz(6)
+  sent_at                 DateTime? @db.Timestamptz(6)
+  delivered_at            DateTime? @db.Timestamptz(6)
+  failed_at               DateTime? @db.Timestamptz(6)
+  created_at              DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model subscription_status_changes {
+  id                BigInt        @id @default(autoincrement())
+  subscription_id   String        @db.VarChar(100)
+  event_type        String        @db.VarChar(50)
+  event_source      String        @default("SYSTEM") @db.VarChar(50)
+  event_status      String        @db.VarChar(20)
+  previous_status   String        @db.VarChar(50)
+  new_status        String        @db.VarChar(50)
+  reason            String?
+  status_changed_at DateTime      @db.Timestamp(6)
+  created_at        DateTime      @default(now()) @db.Timestamp(6)
+  subscriptions     subscriptions @relation(fields: [subscription_id], references: [subscription_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([subscription_id], map: "idx_subscription_status_changes_subscription_id")
+}
+
+model subscriptions {
+  id                             BigInt                        @id @default(autoincrement())
+  subscription_id                String                        @unique @db.VarChar(100)
+  msisdn                         String                        @db.VarChar(20)
+  payment_channel_id             Int
+  merchant_id                    Int
+  product_id                     Int
+  plan_id                        Int
+  merchant_transaction_id        String                        @db.VarChar(100)
+  payment_channel_transaction_id String?                       @db.VarChar(100)
+  payment_channel_reference      String?                       @db.VarChar(100)
+  consent_id                     String?                       @db.VarChar(100)
+  consent_timestamp              DateTime?                     @db.Timestamptz(6)
+  status                         subscription_status           @default(PENDING_CONSENT)
+  auto_renew                     Boolean?                      @default(true)
+  onboarded_at                   DateTime?                     @db.Timestamptz(6)
+  next_billing_at                DateTime?                     @db.Timestamptz(6)
+  grace_period_ends_at           DateTime?                     @db.Timestamptz(6)
+  last_payment_succeed_at        DateTime?                     @db.Timestamptz(6)
+  last_payment_failed_at         DateTime?                     @db.Timestamptz(6)
+  payment_success_count          Int?                          @default(0)
+  remarks                        String?
+  created_at                     DateTime?                     @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime?                     @default(now()) @db.Timestamptz(6)
+  plan_pricing_id                Int?
+  charging_configuration_id      Int?
+  billing_events                 billing_events[]
+  payment_channel_webhooks       payment_channel_webhooks[]
+  subscription_status_changes    subscription_status_changes[]
+  payment_channels               payment_channels              @relation(fields: [payment_channel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "subscriptions_carrier_id_fkey")
+  merchants                      merchants                     @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product_plans                  product_plans                 @relation(fields: [plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  products                       products                      @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+enum product_plan_billing_model_type {
+  ONE_TIME
+  RECURRING
+}
+
+enum subscription_status {
+  INITIATED
+  PENDING_CONSENT
+  CONSENT_REJECTED
+  CONSENT_FAILED
+  PENDING_ACTIVATION
+  ACTIVATION_FAILED
+  ACTIVE
+  SUSPENDED_PAYMENT_FAILED
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+}
