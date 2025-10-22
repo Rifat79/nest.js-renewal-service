@@ -27,7 +27,7 @@ export class PrismaModule {
         PrismaBatchService,
         {
           provide: 'SERVICE_NAME',
-          useValue: options?.serviceName || 'renewal-service',
+          useValue: options?.serviceName || 'dcb-renewal-service',
         },
         // Repositories
         ProductRepository,

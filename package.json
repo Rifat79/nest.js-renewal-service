@@ -1,8 +1,8 @@
 {
-  "name": "renewal-service",
-  "version": "0.0.1",
+  "name": "dcb-renewal-service",
+  "version": "1.0.0",
   "description": "",
-  "author": "",
+  "author": "Rifat79",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

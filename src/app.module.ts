@@ -25,7 +25,7 @@ import { PrismaModule } from './database/prisma.module';
     // Prisma
     PrismaModule.forRoot({
       isGlobal: true,
-      serviceName: 'renewal-service',
+      serviceName: 'dcb-renewal-service',
     }),
   ],
   controllers: [AppController],

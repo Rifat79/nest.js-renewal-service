@@ -21,7 +21,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   ) {
     this.serviceName = configService.get<string>(
       'app.serviceName',
-      'renewal-service',
+      'dcb-renewal-service',
     );
     this.initializePrismaClient();
   }
