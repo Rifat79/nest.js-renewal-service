@@ -2,9 +2,11 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';
+import { HttpCallError } from 'src/common/http-client/http-client.service';
 import { RedisService } from 'src/common/redis/redis.service';
 import { RenewableSubscriptionPayload } from 'src/database/subscription.repository';
 import { RENEWAL_QUEUES } from './renewal.module';
+import { RESULTS_REDIS_KEY } from './result-consumer.scheduler';
 
 export interface RenewalJobData {
   subscriptionId: string;
@@ -17,6 +19,12 @@ export interface ChargeResult {
   timestamp: number;
   success: boolean;
   message?: string;
+  paymentReferenceId?: string;
+  error?: HttpCallError;
+  httpStatus: number;
+  requestPayload: object;
+  responsePayload?: any;
+  responseDuration: number;
 }
 
 @Injectable()
@@ -74,9 +82,7 @@ export class RenewalService {
   }
 
   async publishChargeResult(result: ChargeResult) {
-    const jobName = 'renewal_status_report';
-
-    await this.redis.rpush(jobName, JSON.stringify(result));
+    await this.redis.rpush(RESULTS_REDIS_KEY, JSON.stringify(result));
 
     this.logger.info({
       msg: 'Published charging result',

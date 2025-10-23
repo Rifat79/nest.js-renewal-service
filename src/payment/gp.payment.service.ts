@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
-import { HttpClientService } from 'src/common/http-client/http-client.service';
+import {
+  HttpCallError,
+  HttpClientService,
+} from 'src/common/http-client/http-client.service';
 import { transactionSourceChannel } from './constants/transaction-source.channel.constants';
 
 interface GpPaymentConfig {
@@ -46,8 +49,12 @@ export class GpPaymentService {
 
   async charge(data: ChargeRequest): Promise<{
     success: boolean;
-    data?: unknown;
-    error?: unknown;
+    data: any;
+    error?: HttpCallError;
+    httpStatus: number;
+    responsePayload?: any;
+    requestPayload: object;
+    responseDuration: number;
   }> {
     try {
       const url = `${this.config.baseUrl}/partner/payment/v1/${data.endUserId}/transactions/amount`;
@@ -94,7 +101,11 @@ export class GpPaymentService {
       return {
         success: isPaymentSuccessful,
         data: response.data as unknown,
-        error: response.error as unknown,
+        error: response.error,
+        httpStatus: response.status,
+        responsePayload: response.data,
+        requestPayload: payload,
+        responseDuration: response.duration,
       };
     } catch (error) {
       this.logger.error(error, 'Catch block error in consent charging');

@@ -209,4 +209,24 @@ export abstract class BaseRepository<
       throw error;
     }
   }
+
+  protected async executeRaw(
+    query: TemplateStringsArray | Prisma.Sql, // Accept tagged template literal or Prisma.Sql
+    ...parameters: any[] // Optional parameters for the tagged template literal
+  ): Promise<any> {
+    const client = this.prisma.client;
+    try {
+      if (parameters.length > 0) {
+        return await client.$executeRaw(query, ...parameters);
+      } else {
+        return await client.$executeRaw(query);
+      }
+    } catch (error) {
+      this.logger.error(
+        { model: this.modelName, error, query },
+        'Raw query execution failed',
+      );
+      throw error;
+    }
+  }
 }

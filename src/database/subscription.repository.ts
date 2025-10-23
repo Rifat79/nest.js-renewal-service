@@ -11,8 +11,15 @@ export type RenewableSubscriptionPayload = Prisma.subscriptionsGetPayload<{
     product_plans: true;
     plan_pricing: true;
     products: true;
+    merchants: true;
   };
 }>;
+
+export interface SubscriptionBulkUpdate {
+  subscriptionId: string;
+  success: boolean;
+  nextBillingAt: Date;
+}
 
 @Injectable()
 export class SubscriptionRepository extends BaseRepository<
@@ -34,10 +41,12 @@ export class SubscriptionRepository extends BaseRepository<
   }
 
   protected getDelegate(
-    client: PrismaService | Prisma.TransactionClient,
+    client?: PrismaService | Prisma.TransactionClient,
   ): Prisma.subscriptionsDelegate {
     const prismaClient =
-      client instanceof PrismaService ? client.client : client;
+      client instanceof PrismaService
+        ? client.client
+        : (client ?? this.prisma.client);
 
     return prismaClient.subscriptions;
   }
@@ -80,7 +89,83 @@ export class SubscriptionRepository extends BaseRepository<
         product_plans: true,
         plan_pricing: true,
         products: true,
+        merchants: true,
       },
     });
+  }
+
+  /**
+   * Performs an efficient bulk update using a single raw SQL statement.
+   * Updates status, billing timestamps, and next billing date in one query.
+   */
+  async bulkUpdateStatus(updates: SubscriptionBulkUpdate[]): Promise<void> {
+    if (!updates.length) return;
+
+    const now = new Date();
+
+    const statusCases = Prisma.sql`CASE subscription_id
+    ${Prisma.join(
+      updates.map(
+        (u) =>
+          Prisma.sql`WHEN ${u.subscriptionId} THEN ${u.success ? 'ACTIVE' : 'SUSPENDED_PAYMENT_FAILED'}`,
+      ),
+      ' ',
+    )}
+  END`;
+
+    const succeedAtCases = Prisma.sql`CASE subscription_id
+    ${Prisma.join(
+      updates.map(
+        (u) =>
+          Prisma.sql`WHEN ${u.subscriptionId} THEN ${u.success ? now : null}`,
+      ),
+      ' ',
+    )}
+  END`;
+
+    const failedAtCases = Prisma.sql`CASE subscription_id
+    ${Prisma.join(
+      updates.map(
+        (u) =>
+          Prisma.sql`WHEN ${u.subscriptionId} THEN ${u.success ? null : now}`,
+      ),
+      ' ',
+    )}
+  END`;
+
+    const nextBillingCases = Prisma.sql`CASE subscription_id
+    ${Prisma.join(
+      updates.map(
+        (u) => Prisma.sql`WHEN ${u.subscriptionId} THEN ${u.nextBillingAt}`,
+      ),
+      ' ',
+    )}
+  END`;
+
+    const subscriptionIds = updates.map((u) => u.subscriptionId);
+
+    const query = Prisma.sql`
+    UPDATE subscriptions
+    SET
+      status = ${statusCases},
+      last_payment_succeed_at = ${succeedAtCases},
+      last_payment_failed_at = ${failedAtCases},
+      next_billing_at = ${nextBillingCases}
+    WHERE subscription_id IN (${Prisma.join(subscriptionIds)});
+  `;
+
+    try {
+      await this.executeRaw(query);
+      this.logger.debug(
+        { model: this.modelName, count: updates.length },
+        'Bulk subscription update completed.',
+      );
+    } catch (error) {
+      this.logger.error(
+        { model: this.modelName, error },
+        'Bulk subscription update failed.',
+      );
+      throw error;
+    }
   }
 }

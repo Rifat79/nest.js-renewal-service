@@ -259,4 +259,19 @@ export class RedisService implements OnModuleDestroy {
       return null;
     }
   }
+
+  /**
+   * Removes and returns the first element of a Redis list.
+   * Useful for consuming items from the head of a queue.
+   */
+  async lpop(key: string): Promise<string | null> {
+    try {
+      const result = await this.redis.lpop(key);
+      this.logger.debug({ key, result }, 'Value popped from Redis list.');
+      return result; // Returns the popped value, or null if list is empty
+    } catch (error) {
+      this.logger.error({ error, key }, 'Failed to pop value from Redis list.');
+      return null;
+    }
+  }
 }

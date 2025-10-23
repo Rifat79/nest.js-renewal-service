@@ -1,11 +1,9 @@
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PaymentChannelRepository } from './payment-channel.repository';
-import { PlanPricingRepository } from './plan-pricing.repository';
-import { PlanRepository } from './plan.repository';
+import { BillingEventRepository } from './billing-event.repository';
 import { PrismaBatchService } from './prisma-batch.service';
 import { PrismaService } from './prisma.service';
-import { ProductRepository } from './product.repository';
+import { SubscriptionRepository } from './subscription.repository';
 import { TransactionService } from './transaction.service';
 export interface PrismaModuleOptions {
   isGlobal?: boolean;
@@ -30,22 +28,17 @@ export class PrismaModule {
           useValue: options?.serviceName || 'dcb-renewal-service',
         },
         // Repositories
-        ProductRepository,
-        PaymentChannelRepository,
-        PlanRepository,
-        PlanPricingRepository,
+        SubscriptionRepository,
+        BillingEventRepository,
       ],
       exports: [
         PrismaService,
         // PrismaHealthIndicator,
         TransactionService,
         PrismaBatchService,
-        ProductRepository,
         // Repositories
-        ProductRepository,
-        PaymentChannelRepository,
-        PlanRepository,
-        PlanPricingRepository,
+        SubscriptionRepository,
+        BillingEventRepository,
       ],
     };
   }
@@ -59,21 +52,16 @@ export class PrismaModule {
         TransactionService,
         PrismaBatchService,
         // Repositories
-        ProductRepository,
-        PaymentChannelRepository,
-        PlanRepository,
-        PlanPricingRepository,
+        SubscriptionRepository,
+        BillingEventRepository,
       ],
       exports: [
         PrismaService,
-        ProductRepository,
         TransactionService,
         PrismaBatchService,
         // Repositories
-        ProductRepository,
-        PaymentChannelRepository,
-        PlanRepository,
-        PlanPricingRepository,
+        SubscriptionRepository,
+        BillingEventRepository,
       ],
     };
   }

@@ -31,6 +31,7 @@ export class RenewalGpProcessor extends WorkerHost {
       | { keyword?: string }
       | undefined;
     const productId = config?.keyword ?? '';
+    const paymentReferenceId = uuidv4();
 
     const chargePayload = {
       amount: data.plan_pricing?.base_amount?.toNumber() ?? 0,
@@ -39,7 +40,7 @@ export class RenewalGpProcessor extends WorkerHost {
       description: data.products.description,
       consentId: data.consent_id,
       validityInDays: data.product_plans.billing_cycle_days,
-      referenceCode: uuidv4(),
+      referenceCode: paymentReferenceId,
       productId,
     };
 
@@ -56,10 +57,16 @@ export class RenewalGpProcessor extends WorkerHost {
     // --- Reporting Logic: Publish result ---
     await this.renewalService.publishChargeResult({
       subscriptionId,
+      paymentReferenceId,
       data,
       timestamp: Date.now(),
       success: isSuccess,
+      error: chargeResult.error,
+      requestPayload: chargeResult.requestPayload,
+      responsePayload: chargeResult.responsePayload,
+      responseDuration: chargeResult.responseDuration,
       message,
+      httpStatus: chargeResult.httpStatus,
     });
 
     this.logger.info(
