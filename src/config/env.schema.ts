@@ -31,6 +31,12 @@ export const envSchema = z.object({
     .optional()
     .default(300000), // 5 minutes
 
+  // RabbitMQ
+  RMQ_HOST: z.string().min(1),
+  RMQ_PORT: z.coerce.number().int().positive(),
+  RMQ_USER: z.string().min(1),
+  RMQ_PASS: z.string().min(1),
+
   // log
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])

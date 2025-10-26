@@ -28,6 +28,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.0.1",
     "@prisma/client": "^6.17.1",
+    "amqplib": "^0.10.9",
     "axios": "^1.12.2",
     "ioredis": "^5.8.2",
     "nestjs-pino": "^4.4.1",

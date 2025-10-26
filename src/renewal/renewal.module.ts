@@ -1,5 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { EventPublisherModule } from 'src/event-publisher/event-publisher.module';
 import { RenewalGpProcessor } from './renewal-gp.processor';
 import { RenewalScheduler } from './renewal.schedular';
 import { RenewalService } from './renewal.service';
@@ -17,6 +18,7 @@ export const RENEWAL_QUEUES = {
       { name: RENEWAL_QUEUES.ROBI },
       { name: RENEWAL_QUEUES.ROBI_MIFE },
     ),
+    EventPublisherModule,
   ],
   providers: [RenewalService, RenewalGpProcessor, RenewalScheduler],
   exports: [RenewalService],

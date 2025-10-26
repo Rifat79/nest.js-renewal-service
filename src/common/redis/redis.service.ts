@@ -274,4 +274,17 @@ export class RedisService implements OnModuleDestroy {
       return null;
     }
   }
+
+  /**
+   * Returns all keys matching a pattern.
+   * In production, prefer SCAN over KEYS for performance on large datasets.
+   */
+  async getKeys(pattern: string): Promise<string[]> {
+    try {
+      return await this.redis.keys(pattern);
+    } catch (error) {
+      this.logger.error({ error, pattern }, 'Failed to get keys from Redis.');
+      return [];
+    }
+  }
 }

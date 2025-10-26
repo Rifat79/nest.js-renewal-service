@@ -10,6 +10,10 @@ import {
   SubscriptionBulkUpdate,
   SubscriptionRepository,
 } from 'src/database/subscription.repository';
+import {
+  EventPublisherService,
+  NotificationPayload,
+} from 'src/event-publisher/event-publisher.service';
 import { ChargeResult } from './renewal.service';
 
 export const RESULTS_REDIS_KEY = 'renewal_status_report';
@@ -22,6 +26,7 @@ export class ResultConsumerScheduler {
     private readonly redis: RedisService,
     private readonly subscriptionRepo: SubscriptionRepository,
     private readonly billingEventRepo: BillingEventRepository,
+    private readonly eventPublisher: EventPublisherService,
   ) {}
 
   /**
@@ -95,6 +100,7 @@ export class ResultConsumerScheduler {
   private async processResultsBatch(results: ChargeResult[]): Promise<void> {
     const subscriptionUpdateInputs: SubscriptionBulkUpdate[] = [];
     const billingEventsCreateManyInputs: BillingEventsCreateManyInput[] = [];
+    const notificationMessages: NotificationPayload[] = [];
 
     for (const result of results) {
       const {
@@ -152,9 +158,24 @@ export class ResultConsumerScheduler {
         response_code: httpStatus.toString(),
       };
       billingEventsCreateManyInputs.push(billingEventCreateSingleInput);
+      notificationMessages.push({
+        id: crypto.randomUUID(),
+        source: 'dcb-renewal-service',
+        subscriptionId,
+        merchantTransactionId: merchant_transaction_id,
+        keyword: products.name,
+        msisdn,
+        paymentProvider: payment_channels.code,
+        amount: plan_pricing?.base_amount.toNumber() ?? 0,
+        currency: plan_pricing?.currency ?? 'BDT',
+        billingCycleDays: product_plans.billing_cycle_days,
+        eventType: success ? 'RENEWAL_SUCCESS' : 'RENEWAL_FAILED',
+        timestamp: Date.now(),
+      });
     }
 
     await this.subscriptionRepo.bulkUpdateStatus(subscriptionUpdateInputs);
     await this.billingEventRepo.createMany(billingEventsCreateManyInputs);
+    await this.eventPublisher.sendNotificationsBatch(notificationMessages);
   }
 }
