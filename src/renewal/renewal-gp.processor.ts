@@ -3,7 +3,7 @@ import { Job } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';
 import { GpPaymentService } from 'src/payment/gp.payment.service';
 import { v4 as uuidv4 } from 'uuid';
-import { RENEWAL_QUEUES } from './renewal.module';
+import { RENEWAL_QUEUES } from './renewal.constants';
 import { RenewalJobData, RenewalService } from './renewal.service';
 
 @Processor(RENEWAL_QUEUES.GP, { concurrency: 18 })

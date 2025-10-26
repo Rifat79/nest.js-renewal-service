@@ -4,6 +4,7 @@ import { GpPaymentService } from './gp.payment.service';
 
 @Module({
   imports: [HttpClientModule],
+  providers: [GpPaymentService],
   exports: [GpPaymentService],
 })
 export class PaymentModule {}

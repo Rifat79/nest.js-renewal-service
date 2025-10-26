@@ -1,6 +1,8 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { EventPublisherModule } from 'src/event-publisher/event-publisher.module';
+import { PaymentModule } from 'src/payment/payment.module';
 import { RenewalGpProcessor } from './renewal-gp.processor';
 import { RenewalScheduler } from './renewal.schedular';
 import { RenewalService } from './renewal.service';
@@ -18,6 +20,8 @@ export const RENEWAL_QUEUES = {
       { name: RENEWAL_QUEUES.ROBI },
       { name: RENEWAL_QUEUES.ROBI_MIFE },
     ),
+    ScheduleModule.forRoot(),
+    PaymentModule,
     EventPublisherModule,
   ],
   providers: [RenewalService, RenewalGpProcessor, RenewalScheduler],

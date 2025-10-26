@@ -5,7 +5,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { HttpCallError } from 'src/common/http-client/http-client.service';
 import { RedisService } from 'src/common/redis/redis.service';
 import { RenewableSubscriptionPayload } from 'src/database/subscription.repository';
-import { RENEWAL_QUEUES } from './renewal.module';
+import { RENEWAL_QUEUES } from './renewal.constants';
 import { RESULTS_REDIS_KEY } from './result-consumer.scheduler';
 
 export interface RenewalJobData {
