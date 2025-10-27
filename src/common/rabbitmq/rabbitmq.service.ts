@@ -143,7 +143,7 @@ export class RabbitMQProducerService implements OnModuleInit, OnModuleDestroy {
       arguments: {
         'x-dead-letter-exchange': notificationsDlqExchange,
         'x-dead-letter-routing-key': notificationDlqRoutingKey,
-        'x-max-length': 100000, // Max queue length
+        'x-max-length': 1_000_000, // Max queue length
         'x-overflow': 'reject-publish', // Reject new messages if queue is full
       },
     });

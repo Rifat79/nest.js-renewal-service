@@ -12,7 +12,14 @@ export interface NotificationPayload {
   keyword: string;
   msisdn: string;
   paymentProvider: string; // 'ROBI' | 'GP';
-  eventType: 'RENEWAL_SUCCESS' | 'RENEWAL_FAILED' | 'SUBSCRIPTION_SUSPENDED';
+  eventType:
+    | 'renew.success'
+    | 'renew.fail'
+    | 'subscription.success'
+    | 'subscription.fail'
+    | 'subscription.cancel'
+    | 'subscription.suspend'
+    | 'pre.renewal.alert';
   amount: number;
   currency: string;
   billingCycleDays: number;
