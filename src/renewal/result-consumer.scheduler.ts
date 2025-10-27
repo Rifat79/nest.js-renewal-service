@@ -169,7 +169,7 @@ export class ResultConsumerScheduler {
         amount: plan_pricing?.base_amount.toNumber() ?? 0,
         currency: plan_pricing?.currency ?? 'BDT',
         billingCycleDays: product_plans.billing_cycle_days,
-        eventType: success ? 'RENEWAL_SUCCESS' : 'RENEWAL_FAILED',
+        eventType: success ? 'renew.success' : 'renew.fail',
         timestamp: Date.now(),
       });
     }

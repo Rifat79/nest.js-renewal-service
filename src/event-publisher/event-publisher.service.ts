@@ -19,7 +19,8 @@ export interface NotificationPayload {
     | 'subscription.fail'
     | 'subscription.cancel'
     | 'subscription.suspend'
-    | 'pre.renewal.alert';
+    | 'pre.renewal.alert'
+    | 'test';
   amount: number;
   currency: string;
   billingCycleDays: number;

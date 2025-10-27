@@ -27,7 +27,7 @@ export class AppController {
       keyword: 'MUSIC_PLUS',
       msisdn: '8801712345678',
       paymentProvider: 'ROBI',
-      eventType: 'RENEWAL_SUCCESS',
+      eventType: 'test',
       amount: 50,
       currency: 'BDT',
       billingCycleDays: 30,
