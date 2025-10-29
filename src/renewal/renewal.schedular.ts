@@ -49,7 +49,7 @@ export class RenewalScheduler {
         cursor: this.cursor?.toString(),
       });
 
-      this.dispatchJobs(subscriptions);
+      await this.dispatchJobs(subscriptions);
 
       this.cursor = subscriptions[subscriptions.length - 1].id;
 
@@ -59,7 +59,7 @@ export class RenewalScheduler {
     this.logger.info('--- DAILY RENEWAL DISPATCH COMPLETE ---');
   }
 
-  private dispatchJobs(
+  private async dispatchJobs(
     subscriptions: Awaited<
       ReturnType<SubscriptionRepository['findRenewableSubscriptions']>
     >,
@@ -79,7 +79,7 @@ export class RenewalScheduler {
         });
       }
 
-      this.renewalService.dispatchRenewalJob(
+      await this.renewalService.dispatchRenewalJob(
         {
           subscriptionId: sub.subscription_id,
           data: sub,
