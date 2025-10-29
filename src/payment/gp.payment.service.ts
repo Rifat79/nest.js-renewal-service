@@ -7,7 +7,7 @@ import {
 } from 'src/common/http-client/http-client.service';
 import { transactionSourceChannel } from './constants/transaction-source.channel.constants';
 
-interface GpPaymentConfig {
+interface GpPaymentServiceConfig {
   baseUrl: string;
   auth: {
     username: string;
@@ -29,7 +29,7 @@ type ChargeRequest = {
 
 @Injectable()
 export class GpPaymentService {
-  private readonly config: GpPaymentConfig;
+  private readonly config: GpPaymentServiceConfig;
   private readonly GAMES = ['XPGames', 'GameApex'];
 
   constructor(
@@ -103,7 +103,7 @@ export class GpPaymentService {
         data: response.data as unknown,
         error: response.error,
         httpStatus: response.status,
-        responsePayload: response.data,
+        responsePayload: response.data as unknown,
         requestPayload: payload,
         responseDuration: response.duration,
       };

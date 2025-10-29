@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { EventPublisherModule } from 'src/event-publisher/event-publisher.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { RenewalGpProcessor } from './renewal-gp.processor';
+import { RenewalRobiProcessor } from './renewal-robi.processor';
 import { RenewalScheduler } from './renewal.schedular';
 import { RenewalService } from './renewal.service';
 
@@ -24,7 +25,12 @@ export const RENEWAL_QUEUES = {
     PaymentModule,
     EventPublisherModule,
   ],
-  providers: [RenewalService, RenewalGpProcessor, RenewalScheduler],
+  providers: [
+    RenewalService,
+    RenewalGpProcessor,
+    RenewalRobiProcessor,
+    RenewalScheduler,
+  ],
   exports: [RenewalService],
 })
 export class RenewalModule {}
