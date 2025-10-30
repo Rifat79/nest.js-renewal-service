@@ -42,7 +42,7 @@ export class RenewalGpProcessor extends WorkerHost {
 
     const chargePayload = {
       amount: data.plan_pricing?.base_amount?.toNumber() ?? 0,
-      endUserId: data.payment_channel_reference,
+      endUserId: data.payment_channel_reference_id,
       currency: data.plan_pricing?.currency,
       description: data.products.description,
       consentId: data.consent_id,

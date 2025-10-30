@@ -259,19 +259,17 @@ model products {
 model sms_logs {
   id                      BigInt    @id @default(autoincrement())
   msisdn                  String    @db.VarChar(16)
-  sender_id               String?   @db.VarChar(50)
   message                 String
-  message_type            String?   @db.VarChar(20)
+  event_type              String?   @db.VarChar(50)
   related_subscription_id String?   @db.VarChar(100)
   http_method             String?   @default("POST") @db.VarChar(10)
   request_url             String
   request_payload         Json
   request_headers         Json?
-  status                  String?   @db.VarChar(30)
+  delivery_status         String    @db.VarChar(30)
   error_code              String?   @db.VarChar(20)
   error_message           String?
   provider                String?   @db.VarChar(50)
-  provider_message_id     String?   @db.VarChar(100)
   provider_response       Json?
   retry_count             Int?      @default(0)
   max_retries             Int?      @default(3)
@@ -281,6 +279,7 @@ model sms_logs {
   failed_at               DateTime? @db.Timestamptz(6)
   created_at              DateTime? @default(now()) @db.Timestamptz(6)
   updated_at              DateTime? @default(now()) @db.Timestamptz(6)
+  http_status             Int?
 }
 
 model subscription_status_changes {
@@ -300,40 +299,51 @@ model subscription_status_changes {
 }
 
 model subscriptions {
-  id                             BigInt                        @id @default(autoincrement())
-  subscription_id                String                        @unique @db.VarChar(100)
-  msisdn                         String                        @db.VarChar(20)
-  payment_channel_id             Int
-  merchant_id                    Int
-  product_id                     Int
-  plan_id                        Int
-  merchant_transaction_id        String                        @db.VarChar(100)
-  payment_channel_transaction_id String?                       @db.VarChar(100)
-  payment_channel_reference      String?                       @db.VarChar(100)
-  consent_id                     String?                       @db.VarChar(100)
-  consent_timestamp              DateTime?                     @db.Timestamptz(6)
-  status                         subscription_status           @default(PENDING_CONSENT)
-  auto_renew                     Boolean?                      @default(true)
-  onboarded_at                   DateTime?                     @db.Timestamptz(6)
-  next_billing_at                DateTime?                     @db.Timestamptz(6)
-  grace_period_ends_at           DateTime?                     @db.Timestamptz(6)
-  last_payment_succeed_at        DateTime?                     @db.Timestamptz(6)
-  last_payment_failed_at         DateTime?                     @db.Timestamptz(6)
-  payment_success_count          Int?                          @default(0)
-  remarks                        String?
-  created_at                     DateTime?                     @default(now()) @db.Timestamptz(6)
-  updated_at                     DateTime?                     @default(now()) @db.Timestamptz(6)
-  plan_pricing_id                Int?
-  charging_configuration_id      Int?
-  billing_events                 billing_events[]
-  payment_channel_webhooks       payment_channel_webhooks[]
-  subscription_status_changes    subscription_status_changes[]
-  charging_configurations        charging_configurations?      @relation(fields: [charging_configuration_id], references: [id], onDelete: Restrict, map: "fk_charging_configuration_id")
-  plan_pricing                   plan_pricing?                 @relation(fields: [plan_pricing_id], references: [id], onDelete: Restrict, map: "fk_plan_pricing_id")
-  payment_channels               payment_channels              @relation(fields: [payment_channel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "subscriptions_carrier_id_fkey")
-  merchants                      merchants                     @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product_plans                  product_plans                 @relation(fields: [plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  products                       products                      @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                           BigInt                        @id @default(autoincrement())
+  subscription_id              String                        @unique @db.VarChar(100)
+  msisdn                       String                        @db.VarChar(20)
+  payment_channel_id           Int
+  merchant_id                  Int
+  product_id                   Int
+  plan_id                      Int
+  merchant_transaction_id      String                        @db.VarChar(100)
+  payment_channel_reference_id String?                       @db.VarChar(100)
+  consent_id                   String?                       @db.VarChar(100)
+  consent_timestamp            DateTime?                     @db.Timestamptz(6)
+  status                       subscription_status           @default(PENDING_CONSENT)
+  auto_renew                   Boolean?                      @default(true)
+  onboarded_at                 DateTime?                     @db.Timestamptz(6)
+  next_billing_at              DateTime?                     @db.Timestamptz(6)
+  grace_period_ends_at         DateTime?                     @db.Timestamptz(6)
+  last_payment_succeed_at      DateTime?                     @db.Timestamptz(6)
+  last_payment_failed_at       DateTime?                     @db.Timestamptz(6)
+  payment_success_count        Int?                          @default(0)
+  remarks                      String?
+  created_at                   DateTime?                     @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime?                     @default(now()) @db.Timestamptz(6)
+  plan_pricing_id              Int?
+  charging_configuration_id    Int?
+  billing_events               billing_events[]
+  payment_channel_webhooks     payment_channel_webhooks[]
+  subscription_status_changes  subscription_status_changes[]
+  charging_configurations      charging_configurations?      @relation(fields: [charging_configuration_id], references: [id], onDelete: Restrict, map: "fk_charging_configuration_id")
+  plan_pricing                 plan_pricing?                 @relation(fields: [plan_pricing_id], references: [id], onDelete: Restrict, map: "fk_plan_pricing_id")
+  payment_channels             payment_channels              @relation(fields: [payment_channel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "subscriptions_carrier_id_fkey")
+  merchants                    merchants                     @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product_plans                product_plans                 @relation(fields: [plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  products                     products                      @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model sms_templates {
+  id         Int       @id @default(autoincrement())
+  event_type String
+  operator   String
+  template   String
+  version    Int?      @default(1)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([event_type, operator, version])
 }
 
 enum product_plan_billing_model_type {
